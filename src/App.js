@@ -33,6 +33,20 @@ const App = () => {
 		}
 	];
 
+	const getAsyncStories = () =>
+	    new Promise((resolve) =>
+            setTimeout(
+                () => resolve({data: {stories: initialStories}}),
+                2000
+            )
+        )
+
+    React.useEffect(() => {
+        getAsyncStories().then(result => {
+            setStories(result.data.stories)
+        })
+    })
+
 	/**Custom State */
 	const [searchTerm, setSearchTerm] = useSemiPersistentState('search','React')
 
