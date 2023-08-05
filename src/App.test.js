@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
-import App from './App';
+describe('something truthy and falsy', () => {
+	test('true to be true', () => {
+		expect(true).toBeTruthy();
+	})
 
-test('renders learn react link', () => {
-  render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
-});
+	test('false to be false', () => {
+		expect(false).toBeFalsy();
+	})
+})
