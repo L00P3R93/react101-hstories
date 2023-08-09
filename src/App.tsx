@@ -1,11 +1,10 @@
 import * as React from 'react';
 import axios from 'axios';
 
-//import './App.css'
+import List from './List'
+import SearchForm from './SearchForm';
 
 import styles from './App.module.css'
-
-import {ReactComponent as Check} from './check.svg'
 
 type Story = {
 	objectID: string;
@@ -16,24 +15,13 @@ type Story = {
 	points: number;
 }
 
-type ItemProps = {
-	item: Story;
-	onRemoveItem: (item: Story) => void;
-}
-
 type Stories = Array<Story>
-
-type ListProps = {
-	list: Stories;
-	onRemoveItem: (item: Story) => void;
-}
 
 type StoriesState = {
 	data: Stories;
 	isLoading: boolean;
 	isError: boolean;
 }
-
 
 interface StoriesFetchInitAction {
 	type: 'STORIES_FETCH_INIT';
@@ -171,99 +159,6 @@ const App = () => {
 		</div>
 	);
 }
-
-type SearchFormProps = {
-	searchTerm: string;
-	onSearchInput: (event: React.ChangeEvent<HTMLInputElement>) => void;
-	onSearchSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
-}
-
-const SearchForm = ({searchTerm, onSearchInput, onSearchSubmit} : SearchFormProps) => (
-	<form onSubmit={onSearchSubmit} className={styles.searchForm}>
-		<InputWithLabel 
-			id="search" 
-			value={searchTerm} 
-			isFocused
-			onInputChange={onSearchInput}>
-			Search:
-		</InputWithLabel>
-		&nbsp;
-		<button 
-			type="submit" 
-			disabled={!searchTerm}
-			className={`${styles.button} ${styles.buttonLarge}`}>
-			Submit
-		</button>
-	</form>
-)
-
-type InputWithLabelProps = {
-	id: string;
-	value: string;
-	type?: string;
-	onInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-	isFocused?: boolean;
-	children: React.ReactNode;
-}
-
-const InputWithLabel = ({id, value, type='text', onInputChange, isFocused, children,} : InputWithLabelProps) => {
-	const inputRef = React.useRef<HTMLInputElement>(null!)
-	React.useEffect(() => {
-		if(isFocused && inputRef.current){
-			inputRef.current.focus()
-		}
-	}, [isFocused])
-	return (
-		<>
-			<label htmlFor={id} className={styles.label}>
-				{children}
-			</label>&nbsp;
-			<input 
-				ref={inputRef}
-				id={id} 
-				type={type} 
-				value={value} 
-				autoFocus={isFocused}
-				onChange={onInputChange} 
-				className={styles.input}
-			/>
-		</>
-	)
-}
-
-
-
-const List = ({list, onRemoveItem} : ListProps) => (
-	<ul>
-		{list.map((item) => (
-			<Item
-				key={item.objectID}
-				item={item}
-				onRemoveItem={onRemoveItem}
-			/>
-		))}
-	</ul>
-)
-
-const Item = ({item, onRemoveItem} : ItemProps) => (
-	<li className={styles.item}>
-		<span style={{ width: '40%' }}>
-			<a href={item.url}>{item.title}</a>
-		</span>&nbsp;
-		<span style={{ width: '30%' }}>{item.author}</span>&nbsp;
-		<span style={{ width: '10%' }}>{item.num_comments}</span>&nbsp;
-		<span style={{ width: '10%' }}>{item.points}</span>&nbsp;
-		<span style={{ width: '10%' }}>
-			<button 
-				type="button" 
-				onClick={() => onRemoveItem(item)}
-				className={`${styles.button} ${styles.buttonSmall}`}>
-				<Check height="18px" width="18px" />
-			</button>
-		</span>
-	</li>
-)
-
 export default App;
 
-export { storiesReducer, SearchForm, InputWithLabel, List, Item };
+export { storiesReducer };
