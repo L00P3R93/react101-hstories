@@ -104,6 +104,11 @@ describe('SearchForm', () => {
 		fireEvent.submit(screen.getByRole('button'))
 		expect(searchFormProps.onSearchSubmit).toHaveBeenCalledTimes(1)
 	})
+
+	test('renders snapshot', () => {
+		const {container} = render(<SearchForm {...searchFormProps} />);
+		expect(container.firstChild).toMatchSnapshot();
+	})
 })
 
 describe('InputWithLabel', () => {
@@ -218,6 +223,19 @@ describe('App', () => {
 		expect(screen.queryByText('Jordan Walke')).toBeInTheDocument();
 		expect(screen.queryByText('Dan Abramov, Andrew Clark')).toBeInTheDocument();
 		expect(screen.queryByText('Brendan Eich')).toBeNull();
+
+		fireEvent.change(screen.queryByDisplayValue('React'), {target: {value: 'JavaScript'}});
+		
+		expect(screen.queryByDisplayValue('React')).toBeNull()
+		expect(screen.queryByDisplayValue('JavaScript')).toBeInTheDocument();
+
+		fireEvent.submit(screen.queryByText('Submit'))
+
+		await act(() => javaScriptPromise)
+
+		expect(screen.queryByText('Jordan Walke')).toBeNull()
+		expect(screen.queryByText('Dan Abramov, Andrew Clark')).toBeNull()
+		expect(screen.queryByText('Brendan Eich')).toBeInTheDocument()
 	})
 })
 
