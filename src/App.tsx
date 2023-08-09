@@ -99,6 +99,21 @@ const storiesReducer = (state: StoriesState, action: StoriesAction) => {
 	}
 }
 
+const getUrl = (searchTerm: string) => `${API_ENDPOINT}${searchTerm}`
+const extractSearchTerm = (url: string) => url.replace(API_ENDPOINT, '')
+const getLastSearches = (urls: string[]): string[] => {
+	const uniqueSearchTerms = new Set<string>();
+
+	for(const url of urls.reverse()){
+		const searchTerm = extractSearchTerm(url)
+		uniqueSearchTerms.add(searchTerm)
+
+		if(uniqueSearchTerms.size === 5) break;
+	}
+
+	return Array.from(uniqueSearchTerms)
+}
+
 const App = () => {
 	/**Custom State */
 	const [searchTerm, setSearchTerm] = useSemiPersistentState('search','React')
@@ -106,13 +121,28 @@ const App = () => {
 		storiesReducer, 
 		{ data: [], isLoading: false, isError: false }
 	)
-	const [url, setUrl] = React.useState(`${API_ENDPOINT}${searchTerm}`)
+	const [urls, setUrls] = React.useState([
+		getUrl(searchTerm)
+	])
+
+	const handleSearch = (searchTerm: string) => {
+		const url = getUrl(searchTerm);
+		setUrls([...urls, url])
+	}
+
+	const handleLastSearch = (searchTerm: string) => {
+		setSearchTerm(searchTerm)
+		handleSearch(searchTerm)
+	}
+
+	const lastSearches = getLastSearches(urls)
 
 	const handleFetchStories = React.useCallback( async () => {
 		dispatchStories({ type: 'STORIES_FETCH_INIT' })
 		
 		try{
-			const result = await axios.get(url)
+			const lastUrl = urls[urls.length - 1]
+			const result = await axios.get(lastUrl)
 			dispatchStories({
 				type: 'STORIES_FETCH_SUCCESS',
 				payload: result.data.hits,
@@ -120,7 +150,7 @@ const App = () => {
 		}catch{
 			dispatchStories({ type: 'STORIES_FETCH_FAILURE' })
 		}
-	}, [url])
+	}, [urls])
 	
 	React.useEffect(() => {
 		handleFetchStories()
@@ -137,7 +167,7 @@ const App = () => {
 		setSearchTerm(event.target.value)
 	}
 	const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-		setUrl(`${API_ENDPOINT}${searchTerm}`)
+		handleSearch(searchTerm)
 		event.preventDefault();
 	}
 
@@ -148,6 +178,8 @@ const App = () => {
 			
 			<SearchForm searchTerm={searchTerm} onSearchInput={handleSearchInput} onSearchSubmit={handleSearchSubmit} />
 			
+			<LastSearches lastSearches={lastSearches} onLastSearch={handleLastSearch} />
+
 			{/** -- Conditional Rendering JSX
 			 true && 'Hello World' => 'Hello World',
 			 false && 'Hello World' => false,
@@ -159,6 +191,25 @@ const App = () => {
 		</div>
 	);
 }
+
+type LastSearchProps = {
+	lastSearches: string[],
+	onLastSearch: (searchTerm: string) => void
+}
+
+const LastSearches = ({lastSearches, onLastSearch} : LastSearchProps) => (
+	<>
+		{lastSearches.map((searchTerm, index) => (
+			<button 
+			key={searchTerm + index}
+			type='button'
+			onClick={() => onLastSearch(searchTerm)}>
+				{searchTerm}
+			</button>
+		))}
+	</>
+)
+
 export default App;
 
 export { storiesReducer };
