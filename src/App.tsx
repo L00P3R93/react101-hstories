@@ -19,6 +19,7 @@ type Stories = Array<Story>
 
 type StoriesState = {
 	data: Stories;
+	page: number;
 	isLoading: boolean;
 	isError: boolean;
 }
@@ -29,7 +30,7 @@ interface StoriesFetchInitAction {
 
 interface StoriesFetchSuccessAction {
 	type: 'STORIES_FETCH_SUCCESS';
-	payload: Stories;
+	payload: {list: Stories, page: number};
 }
 
 interface StoriesFetchFailureAction {
@@ -46,8 +47,6 @@ type StoriesAction =
 	| StoriesFetchSuccessAction
 	| StoriesFetchFailureAction
 	| StoriesRemoveAction
-
-const API_ENDPOINT = 'http://hn.algolia.com/api/v1/search?query='
 
 
 const useSemiPersistentState = (
@@ -79,7 +78,8 @@ const storiesReducer = (state: StoriesState, action: StoriesAction) => {
 				...state,
 				isLoading: false,
 				isError: false,
-				data: action.payload
+				data: action.payload.page === 0 ? action.payload.list: state.data.concat(action.payload.list),
+				page: action.payload.page,
 			};
 		case 'STORIES_FETCH_FAILURE':
 			return {
@@ -99,8 +99,16 @@ const storiesReducer = (state: StoriesState, action: StoriesAction) => {
 	}
 }
 
-const getUrl = (searchTerm: string) => `${API_ENDPOINT}${searchTerm}`
-const extractSearchTerm = (url: string) => url.replace(API_ENDPOINT, '')
+
+const API_ENDPONT = 'http://hn.algolia.com/api/v1/search?query='
+
+const API_BASE = 'http://hn.algolia.com/api/v1'
+const API_SEARCH = '/search'
+const PARAM_SEARCH = 'query='
+const PARAM_PAGE = 'page='
+
+const getUrl = (searchTerm: string, page: number) => `${API_BASE}${API_SEARCH}?${PARAM_SEARCH}${searchTerm}&${PARAM_PAGE}${page}`;
+const extractSearchTerm = (url: string) => url.substring(url.lastIndexOf('?')+ 1, url.lastIndexOf('&')).replace(PARAM_SEARCH, '');
 const getLastSearches = (urls: string[]): string[] => {
 	const uniqueSearchTerms = new Set<string>();
 
@@ -119,20 +127,20 @@ const App = () => {
 	const [searchTerm, setSearchTerm] = useSemiPersistentState('search','React')
 	const [stories, dispatchStories] = React.useReducer(
 		storiesReducer, 
-		{ data: [], isLoading: false, isError: false }
+		{ data: [], page:0, isLoading: false, isError: false }
 	)
 	const [urls, setUrls] = React.useState([
-		getUrl(searchTerm)
+		getUrl(searchTerm, 0)
 	])
 
-	const handleSearch = (searchTerm: string) => {
-		const url = getUrl(searchTerm);
+	const handleSearch = (searchTerm: string, page: number) => {
+		const url = getUrl(searchTerm, page);
 		setUrls([...urls, url])
 	}
 
 	const handleLastSearch = (searchTerm: string) => {
 		setSearchTerm(searchTerm)
-		handleSearch(searchTerm)
+		handleSearch(searchTerm, 0)
 	}
 
 	const lastSearches = getLastSearches(urls)
@@ -145,7 +153,10 @@ const App = () => {
 			const result = await axios.get(lastUrl)
 			dispatchStories({
 				type: 'STORIES_FETCH_SUCCESS',
-				payload: result.data.hits,
+				payload: {
+					list: result.data.hits,
+					page: result.data.page
+				}
 			})
 		}catch{
 			dispatchStories({ type: 'STORIES_FETCH_FAILURE' })
@@ -167,10 +178,15 @@ const App = () => {
 		setSearchTerm(event.target.value)
 	}
 	const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-		handleSearch(searchTerm)
+		handleSearch(searchTerm, 0)
 		event.preventDefault();
 	}
 
+	const handleMore = () => {
+		const lastUrl = urls[urls.length - 1]
+		const searchTerm = extractSearchTerm(lastUrl)
+		handleSearch(searchTerm, stories.page + 1)
+	}
 
 	return (
 		<div className={styles.container}>
@@ -185,8 +201,14 @@ const App = () => {
 			 false && 'Hello World' => false,
 			 */}
 			{stories.isError && <p>Something went wrong ...</p>}
-			{stories.isLoading ? (<p>Loading ...</p>) : (
-				<List list={stories.data} onRemoveItem={handleRemoveStory} />
+			<List list={stories.data} onRemoveItem={handleRemoveStory} />
+			{stories.isLoading ? (<p>Loading  ...</p>) : (
+				<button 
+					type="button" 
+					onClick={handleMore}
+					className={`${styles.button} ${styles.buttonSmall}`}>
+					More
+				</button>
 			)}
 		</div>
 	);
@@ -203,7 +225,8 @@ const LastSearches = ({lastSearches, onLastSearch} : LastSearchProps) => (
 			<button 
 			key={searchTerm + index}
 			type='button'
-			onClick={() => onLastSearch(searchTerm)}>
+			onClick={() => onLastSearch(searchTerm)}
+			className={`${styles.button} ${styles.buttonSmall}`}>
 				{searchTerm}
 			</button>
 		))}
